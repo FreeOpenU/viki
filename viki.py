@@ -6,7 +6,8 @@ Compare with the input_text.
 
 # Enter the statement you want to be verified here.
 # input_text = 'The US population is 300 million.'
-input_text = 'Micheal Jordan is the best NBA player.'
+# input_text = 'Micheal Jordan is the best NBA player.'
+input_text = 'Squirrel cage motors are induction motors.'
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,10 +15,9 @@ import stanza
 from sentence_transformers import SentenceTransformer, util
 
 
-def get_wiki(input_text:str):
+def get_wiki(input_text:str) -> str:
     """
     Search input_text from Wikipedia. Returns the relevant article.
-    Return: String.
     """
     response = requests.get(f'https://en.wikipedia.org/w/index.php?search={input_text}&title=Special%3ASearch&fulltext=1')
     bs = BeautifulSoup(response.text, "html.parser")
@@ -35,7 +35,7 @@ def get_wiki(input_text:str):
     return content
 
 
-def most_similar(input_text:str, wiki_content:str):
+def most_similar(input_text:str, wiki_content:str) -> (str, int):
     """
     Find the sentence with highest similarity score.
     """
@@ -82,6 +82,6 @@ if __name__ == '__main__':
     print(f'The most similar sentence is\n\n{similar_sent}.\n\n')
 
     if input_sentiment == similar_sent_sentiment:
-        print('The sentiment are same.')
+        print('The sentiment is same.')
     else:
-        print('The sentiment are different.')
+        print('The sentiment is different.')
