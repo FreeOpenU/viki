@@ -13,9 +13,12 @@ import requests
 from bs4 import BeautifulSoup
 import stanza
 from sentence_transformers import SentenceTransformer, util
+from stanza.server import CoreNLPClient
+
+en_nlp = stanza.Pipeline('en', verbose=False)
 
 
-def get_wiki(input_text:str) -> str:
+def get_wiki(input_text: str) -> str:
     """
     Search input_text from Wikipedia. Returns the relevant article.
     """
@@ -35,7 +38,7 @@ def get_wiki(input_text:str) -> str:
     return content
 
 
-def most_similar(input_text:str, wiki_content:str) -> (str, int):
+def most_similar(input_text: str, wiki_content: str) -> (str, int):
     """
     Find the sentence with highest similarity score.
     """
@@ -64,6 +67,78 @@ def most_similar(input_text:str, wiki_content:str) -> (str, int):
     return most_similar_sent, most_similar_sent_sentiment
 
 
+def get_local_stanfordNLP(text: str, annotators: str):
+    """
+    Not recommend, please use function get_remote_stanfordNLP.
+    Get stanfordnlp result from local device.
+    text should be a string, it can include several sentences.
+    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref'.
+    For the output type and how to obtain specific data in it, please see the official guidance from stanfordNLP or see the function get_openidtriple.
+    """
+    with CoreNLPClient(
+            properties={'annotators': annotators, 'coref.algorithm': 'statistical'},
+            timeout=30000,
+            memory='6G') as client:
+        ann = client.annotate(text)
+    return ann
+
+
+def get_remote_stanfordNLP(input: str, annotators: str) -> str:
+    """
+    Get stanfordnlp result from remote devices, this is faster than getting result from local device.
+    input should be a string, it can include several sentences.
+    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref'.
+    For the output type and how to obtain specific data in it, please see stanfordNLP official guidance
+    """
+    return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).text
+
+
+def split_doc(document: str) -> list:
+    """
+    Split document into separate sentences.
+    document should be a string, it can include several sentences.
+    Output is a list such as ['Chris Manning is a nice person.', 'Chris wrote a simple sentence.']
+    """
+    doc = en_nlp(document)
+    sent_list = [sent.text for sent in doc.sentences]
+    return sent_list
+
+
+def get_openidtriple(text: str) -> list:
+    """
+    Get subject, relation, object triple-pairs of a sentence from local device.
+    text should be a string, it can include several sentences.
+    The output is a list such as [['Chris Manning', 'is', 'nice person'], ['Chris Manning', 'is', 'person'], ['Manning', 'is', 'nice']]
+    """
+    ann = get_local_stanfordNLP(text)
+    all_pairs = []
+    # get the openidTriple
+    for sentence in ann.sentence:
+        for triple in sentence.openieTriple:
+            all_pairs.append([triple.subject, triple.relation, triple.object])
+    return all_pairs
+
+
+def mapping(statement: str, wikitext: str):
+    """
+    Check if data from wiki has the same triple-pair with input
+    statement should be a str with one sentence, multiple sentences will be added if needed.
+    wikitext can be a str with multiple sentences
+    """
+    if statement is None:
+        return None
+    if len(split_doc(statement)) == 1:
+        sta_triple = get_openidtriple(statement)
+        wiki_triple = get_openidtriple(wikitext)
+        for wt in wiki_triple:
+            for st in sta_triple:
+                if st == wt:
+                    return True
+        return False
+    else:
+        pass
+
+
 if __name__ == '__main__':
     # Please comment out the following line after the first run.
     stanza.download('en')
@@ -85,3 +160,5 @@ if __name__ == '__main__':
         print('The sentiment is same.')
     else:
         print('The sentiment is different.')
+
+
