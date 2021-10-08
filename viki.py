@@ -143,7 +143,7 @@ if __name__ == '__main__':
     # Please comment out the following line after the first run.
     stanza.download('en')
 
-    en_nlp = stanza.Pipeline('en')
+    # en_nlp = stanza.Pipeline('en')
     # Get the sentiment of input_text.
     en_doc = en_nlp(input_text)
     input_sentiment = en_doc.sentences[0].sentiment
