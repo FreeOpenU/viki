@@ -7,6 +7,8 @@ Compare with the input_text.
 # Enter the statement you want to be verified here.
 # input_text = 'The US population is 300 million.'
 # input_text = 'Micheal Jordan is the best NBA player.'
+from typing import List
+
 input_text = 'Squirrel cage motors are induction motors.'
 
 import requests
@@ -93,22 +95,22 @@ def get_remote_stanfordNLP(input: str, annotators: str) -> str:
     return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).text
 
 
-def split_doc(document: str) -> list:
+def split_doc(document: str) -> List[str]:
     """
     Split document into separate sentences.
     document should be a string, it can include several sentences.
-    Output is a list such as ['Chris Manning is a nice person.', 'Chris wrote a simple sentence.']
+    Output example ['Chris Manning is a nice person.', 'Chris wrote a simple sentence.']
     """
     doc = en_nlp(document)
     sent_list = [sent.text for sent in doc.sentences]
     return sent_list
 
 
-def get_openidtriple(text: str) -> list:
+def get_openidtriple(text: str) -> List[List[str]]:
     """
     Get subject, relation, object triple-pairs of a sentence from local device.
     text should be a string, it can include several sentences.
-    The output is a list such as [['Chris Manning', 'is', 'nice person'], ['Chris Manning', 'is', 'person'], ['Manning', 'is', 'nice']]
+    The output example [['Chris Manning', 'is', 'nice person'], ['Chris Manning', 'is', 'person'], ['Manning', 'is', 'nice']]
     """
     ann = get_local_stanfordNLP(text)
     all_pairs = []
