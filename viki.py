@@ -149,7 +149,7 @@ def replace_coref(input_text: str) -> str:
     Replace pronouns to entities, for example, replace he to Chris Manning, Jordan to Micheal Jordan.
     input_text should be a str with multiple sentences.
     output is a str.
-    can be improved by calling remote server in one time
+    Can be improved by calling remote server in one time
     """
     input_coref = get_remote_stanfordNLP(input_text, 'coref')
     split_text = split_doc(input_text)
