@@ -7,10 +7,13 @@ Compare with the input_text.
 # Enter the statement you want to be verified here.
 # input_text = 'The US population is 300 million.'
 # input_text = 'Micheal Jordan is the best NBA player.'
-from typing import List
+
 
 input_text = 'Squirrel cage motors are induction motors.'
 
+
+import json
+from typing import List
 import requests
 from bs4 import BeautifulSoup
 import stanza
@@ -139,6 +142,30 @@ def mapping(statement: str, wikitext: str):
         return False
     else:
         pass
+
+
+def replace_coref(input_text: str) -> str:
+    """
+    Replace pronouns to entities, for example, replace he to Chris Manning, Jordan to Micheal Jordan.
+    input_text should be a str with multiple sentences.
+    output is a str.
+    """
+    input_coref = get_remote_stanfordNLP(input_text, 'coref')
+    split_text = split_doc(input_text)
+    json1 = json.loads(input_coref)
+    coref_inf = json1['corefs']
+    for inf in coref_inf:
+        for i in coref_inf[inf]:
+            if i['isRepresentativeMention']:
+                break
+        for j in coref_inf[inf]:
+            if j != i:
+                split_text[j['sentNum'] - 1] = split_text[j['sentNum'] - 1].replace(j['text'], i['text'])
+    comb = ''
+    for k in split_text:
+        comb += ' ' + k
+        print(comb[1:])
+    return comb[1:]
 
 
 if __name__ == '__main__':
