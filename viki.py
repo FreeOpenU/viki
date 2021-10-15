@@ -22,6 +22,8 @@ from stanza.server import CoreNLPClient
 
 en_nlp = stanza.Pipeline('en', verbose=False)
 
+# Format demo of relation between subject and object, and corresponding keywords.
+rel = {'belong to': ['belong to', 'is one of']}
 
 def get_wiki(input_text: str) -> str:
     """
@@ -43,7 +45,7 @@ def get_wiki(input_text: str) -> str:
     return content
 
 
-def most_similar(input_text: str, wiki_content: str) -> (str, int):
+def most_similar(input_text: str, wiki_content: str) -> (str, int, float):
     """
     Find the sentence with highest similarity score.
     """
@@ -69,7 +71,7 @@ def most_similar(input_text: str, wiki_content: str) -> (str, int):
     max_index = sentence_scores.index(max(sentence_scores))
     most_similar_sent = sentences[max_index]
     most_similar_sent_sentiment = sentences_sentiment[max_index]
-    return most_similar_sent, most_similar_sent_sentiment
+    return most_similar_sent, most_similar_sent_sentiment, max(sentence_scores)
 
 
 def get_local_stanfordNLP(text: str, annotators: str):
@@ -182,13 +184,10 @@ if __name__ == '__main__':
     wiki_content = get_wiki(input_text).replace('\n', ' ')
 
     # Get the most similar sentence.
-    similar_sent, similar_sent_sentiment = most_similar(input_text, wiki_content)
+    similar_sent, similar_sent_sentiment, similarity = most_similar(input_text, wiki_content)
     print(f'The input statement is\n\n{input_text}.\n\n\n')
     print(f'The most similar sentence is\n\n{similar_sent}.\n\n')
+    print(f'The similarity is \n\n{similarity}\n\n')
 
-    if input_sentiment == similar_sent_sentiment:
-        print('The sentiment is same.')
-    else:
-        print('The sentiment is different.')
-
-
+    if abs(input_sentiment - similar_sent_sentiment) == 2:
+        print('The sentiment is opposite.')
