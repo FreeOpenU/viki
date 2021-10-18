@@ -79,7 +79,7 @@ def get_local_stanfordNLP(text: str, annotators: str):
     Not recommend, please use function get_remote_stanfordNLP.
     Get stanfordnlp result from local device.
     text should be a string, it can include several sentences.
-    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref'.
+    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref,openie'.
     For the output type and how to obtain specific data in it, please see the official guidance from stanfordNLP or see the function get_openidtriple.
     """
     with CoreNLPClient(
@@ -94,7 +94,7 @@ def get_remote_stanfordNLP(input: str, annotators: str) -> str:
     """
     Get stanfordnlp result from remote devices, this is faster than getting result from local device.
     input should be a string, it can include several sentences.
-    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref'.
+    annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref,openie'.
     For the output type and how to obtain specific data in it, please see stanfordNLP official guidance
     """
     return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).text
@@ -146,14 +146,16 @@ def mapping(statement: str, wikitext: str):
         pass
 
 
-def replace_coref(input_text: str) -> str:
+def replace_coref(statement_text: str, wiki_content: str) -> (str, str):
     """
-    Replace pronouns to entities, for example, replace he to Chris Manning, Jordan to Micheal Jordan.
-    input_text should be a str with multiple sentences.
-    output is a str.
+    Replace pronouns of wiki_content to entities, for example, replace he to Chris Manning, Jordan to Micheal Jordan.
+    statement_text should be a str with one sentences ending with a ‘.’.
+    wiki_content should be a str with multiple sentences ending with a ‘.’.
+    The output is a str with only the Wikipedia content that has replaced the pronouns.
     Can be improved by calling remote server in one time
     """
-    input_coref = get_remote_stanfordNLP(input_text, 'coref')
+    input_text = statement_text + ' ' + wiki_content
+    input_coref = get_local_stanfordNLP(input_text, 'coref')
     split_text = split_doc(input_text)
     json1 = json.loads(input_coref)
     coref_inf = json1['corefs']
@@ -164,11 +166,15 @@ def replace_coref(input_text: str) -> str:
         for j in coref_inf[inf]:
             if j != i:
                 split_text[j['sentNum'] - 1] = split_text[j['sentNum'] - 1].replace(j['text'], i['text'])
-    comb = ''
+    replaced_text = ''
     for k in split_text:
-        comb += ' ' + k
-        print(comb[1:])
-    return comb[1:]
+        replaced_text += ' ' + k
+    for m in range(len(replaced_text)):
+        if replaced_text[m] == '.':
+            break
+    replaced_statement = replaced_text[:m + 2]
+    replaced_wiki = replaced_text[m + 2:]
+    return replaced_statement, replaced_wiki
 
 
 if __name__ == '__main__':
@@ -191,3 +197,12 @@ if __name__ == '__main__':
 
     if abs(input_sentiment - similar_sent_sentiment) == 2:
         print('The sentiment is opposite.')
+
+    # code for using function replace_coref
+    input_text = 'Micheal Jordan is the best NBA player.'
+    wiki_content = get_wiki(input_text).replace('\n', ' ')
+    replaced_statement, replaced_wiki = replace_coref(input_text, wiki_content)
+    print(f'The original wiki content is\n\n{wiki_content}.\n\n\n')
+    print(f'The replaced wiki content is\n\n{replaced_wiki}.\n\n\n')
+    similar_sent, similar_sent_sentiment, similarity = most_similar(replaced_statement, replaced_wiki)
+
