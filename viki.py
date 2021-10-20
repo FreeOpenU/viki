@@ -155,7 +155,7 @@ def replace_coref(statement_text: str, wiki_content: str) -> (str, str):
     Can be improved by calling remote server in one time
     """
     input_text = statement_text + ' ' + wiki_content
-    input_coref = get_local_stanfordNLP(input_text, 'coref')
+    input_coref = get_remote_stanfordNLP(input_text, 'coref')
     split_text = split_doc(input_text)
     json1 = json.loads(input_coref)
     coref_inf = json1['corefs']
