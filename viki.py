@@ -83,7 +83,7 @@ def get_local_stanfordNLP(text: str, annotators: str):
     For the output type and how to obtain specific data in it, please see the official guidance from stanfordNLP or see the function get_openidtriple.
     """
     with CoreNLPClient(
-            properties={'annotators': annotators, 'coref.algorithm': 'statistical'},
+            properties={'annotators': annotators, 'coref.algorithm': 'statistical', "outputFormat":"json"},
             timeout=30000,
             memory='6G') as client:
         ann = client.annotate(text)
@@ -97,7 +97,7 @@ def get_remote_stanfordNLP(input: str, annotators: str) -> str:
     annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref,openie'.
     For the output type and how to obtain specific data in it, please see stanfordNLP official guidance
     """
-    return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).text
+    return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).json()
 
 
 def split_doc(document: str) -> List[str]:
@@ -111,18 +111,24 @@ def split_doc(document: str) -> List[str]:
     return sent_list
 
 
-def get_openidtriple(text: str) -> List[List[str]]:
+def get_openidtriple(text: str) -> List[List[List[str]]]:
     """
     Get subject, relation, object triple-pairs of a sentence from local device.
     text should be a string, it can include several sentences.
-    The output example [['Chris Manning', 'is', 'nice person'], ['Chris Manning', 'is', 'person'], ['Manning', 'is', 'nice']]
+    The output example
+    [
+    [['Chris Manning', 'is', 'nice person'], ['Chris Manning', 'is', 'person'],['Manning', 'is', 'nice']],
+    [['Micheal', 'is', 'NBA player'], ['Micheal', 'is', 'best NBA player']]
+    ]
     """
-    ann = get_local_stanfordNLP(text)
+    ann = get_remote_stanfordNLP(text, 'openie')
     all_pairs = []
     # get the openidTriple
-    for sentence in ann.sentence:
-        for triple in sentence.openieTriple:
-            all_pairs.append([triple.subject, triple.relation, triple.object])
+    for sentence in ann['sentences']:
+        temp = []
+        for triple in sentence['openie']:
+            temp.append([triple['subject'], triple['relation'], triple['object']])
+        all_pairs.append(temp)
     return all_pairs
 
 
@@ -138,15 +144,16 @@ def mapping(statement: str, wikitext: str):
         sta_triple = get_openidtriple(statement)
         wiki_triple = get_openidtriple(wikitext)
         for wt in wiki_triple:
-            for st in sta_triple:
-                if st == wt:
-                    return True
+            for pair in wt:
+                for st in sta_triple:
+                    if st == pair:
+                        return True
         return False
     else:
         pass
 
 
-def replace_coref(statement_text: str, wiki_content: str) -> (str, str):
+def replace_coref(statement_text: str, wiki_content: str) -> str:
     """
     Replace pronouns of wiki_content to entities, for example, replace he to Chris Manning, Jordan to Micheal Jordan.
     statement_text should be a str with one sentences ending with a ‘.’.
@@ -157,8 +164,7 @@ def replace_coref(statement_text: str, wiki_content: str) -> (str, str):
     input_text = statement_text + ' ' + wiki_content
     input_coref = get_remote_stanfordNLP(input_text, 'coref')
     split_text = split_doc(input_text)
-    json1 = json.loads(input_coref)
-    coref_inf = json1['corefs']
+    coref_inf = input_coref['corefs']
     for inf in coref_inf:
         for i in coref_inf[inf]:
             if i['isRepresentativeMention']:
