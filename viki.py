@@ -97,7 +97,8 @@ def get_remote_stanfordNLP(input: str, annotators: str) -> str:
     annotators should be a string, such as 'tokenize,ssplit,pos,lemma,ner,parse,depparse,coref,openie'.
     For the output type and how to obtain specific data in it, please see stanfordNLP official guidance
     """
-    return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input).json()
+    headers = {'Content-Type': 'text/text; charset=utf-8'}
+    return requests.post('http://66.76.242.198:9888/?properties={"annotators":' + annotators + ',"outputFormat":"json"}', data=input.encode('utf-8'), headers=headers).json()
 
 
 def split_doc(document: str) -> List[str]:
@@ -161,15 +162,18 @@ def replace_coref(statement_text: str, wiki_content: str) -> str:
     The output is a str with only the Wikipedia content that has replaced the pronouns.
     Can be improved by calling remote server in one time
     """
+    from pprint import pprint
     input_text = statement_text + ' ' + wiki_content
     input_coref = get_remote_stanfordNLP(input_text, 'coref')
+
     split_text = split_doc(input_text)
     coref_inf = input_coref['corefs']
-    for inf in coref_inf:
-        for i in coref_inf[inf]:
+    pprint(coref_inf)
+    for inf in coref_inf.values():
+        for i in inf:
             if i['isRepresentativeMention']:
                 break
-        for j in coref_inf[inf]:
+        for j in inf:
             if j != i:
                 split_text[j['sentNum'] - 1] = split_text[j['sentNum'] - 1].replace(j['text'], i['text'])
     replaced_text = ''
@@ -189,20 +193,20 @@ if __name__ == '__main__':
 
     # en_nlp = stanza.Pipeline('en')
     # Get the sentiment of input_text.
-    en_doc = en_nlp(input_text)
-    input_sentiment = en_doc.sentences[0].sentiment
-
-    # Get content from Wikipedia
-    wiki_content = get_wiki(input_text).replace('\n', ' ')
-
-    # Get the most similar sentence.
-    similar_sent, similar_sent_sentiment, similarity = most_similar(input_text, wiki_content)
-    print(f'The input statement is\n\n{input_text}.\n\n\n')
-    print(f'The most similar sentence is\n\n{similar_sent}.\n\n')
-    print(f'The similarity is \n\n{similarity}\n\n')
-
-    if abs(input_sentiment - similar_sent_sentiment) == 2:
-        print('The sentiment is opposite.')
+    # en_doc = en_nlp(input_text)
+    # input_sentiment = en_doc.sentences[0].sentiment
+    #
+    # # Get content from Wikipedia
+    # wiki_content = get_wiki(input_text).replace('\n', ' ')
+    #
+    # # Get the most similar sentence.
+    # similar_sent, similar_sent_sentiment, similarity = most_similar(input_text, wiki_content)
+    # print(f'The input statement is\n\n{input_text}.\n\n\n')
+    # print(f'The most similar sentence is\n\n{similar_sent}.\n\n')
+    # print(f'The similarity is \n\n{similarity}\n\n')
+    #
+    # if abs(input_sentiment - similar_sent_sentiment) == 2:
+    #     print('The sentiment is opposite.')
 
     # code for using function replace_coref
     input_text = 'Micheal Jordan is the best NBA player.'
